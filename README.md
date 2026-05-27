@@ -19,6 +19,8 @@
 | 빌드 / 등록 스크립트 | `scripts/` |
 | 서비스 가이드 | `docs/SERVICE_GUIDE.md` |
 
+**처음 배포한다면 → [docs/QUICKSTART.md](docs/QUICKSTART.md) 19단계 step-by-step 가이드** 를 따라가세요.
+
 자세한 아키텍처는 [docs/SERVICE_GUIDE.md](docs/SERVICE_GUIDE.md) 참조.
 
 ---
@@ -126,6 +128,7 @@ terraform output streamlit_url
 
 ## 문서
 
+- **[docs/QUICKSTART.md](docs/QUICKSTART.md)** — **처음 배포 시 따라할 19단계 가이드 (필독)**
 - [docs/SERVICE_GUIDE.md](docs/SERVICE_GUIDE.md) — 아키텍처 / 그래프 / MCP / AgentCore 구성 (코드 기반)
 - [docs/CUSTOMER_ONBOARDING.md](docs/CUSTOMER_ONBOARDING.md) — IAM 권한 요청서 + 외부 자원 매핑
 - [docs/EXTERNAL_RESOURCES.md](docs/EXTERNAL_RESOURCES.md) — 고객이 제공해야 할 자원·env 매핑 표
