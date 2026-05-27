@@ -12,12 +12,15 @@ DBAOps-Agent 를 자기 AWS 샌드박스 계정에 띄우는 step-by-step 가이
 
 - [ ] AWS 샌드박스 계정 (관리자 권한)
 - [ ] 본인 PC: AWS CLI v2, Terraform 1.7+, Docker (buildx 포함), Python 3.12+, git
+- [ ] **`boto3` Python 패키지** 설치 (`pip install boto3` — register 스크립트가 import)
 - [ ] 분석할 대상이 있는 리소스 (최소 1개):
   - RDS PostgreSQL **또는** RDS MySQL endpoint + Secrets Manager secret
   - 또는 EC2 위의 Prometheus URL
   - 또는 MSK cluster
   - 또는 S3 log bucket
 - [ ] 위 리소스에 도달 가능한 VPC (subnet + SG)
+- [ ] **VPC private subnet 에 NAT** (Lambda 가 docs.aws.amazon.com / Bedrock / Cognito / Secrets Manager 외부 호출). 없으면 `awslabs-aws-doc` 도구가 동작 안 함, 일부 다른 도구도 timeout. customer VPC 에 NAT 가 없다면 **`create_vpc=true`** 로 신규 VPC 만들어 사용 권장.
+- [ ] **분석 대상 리소스의 secret 이 `{"username": "...", "password": "..."}` JSON 형식**. RDS 의 `master_user_secret` 자동 발급은 이 형식 ✅. 직접 만든 secret 이라면 키 이름 확인.
 
 위 중 하나도 없으면 PoC 시연 자체가 안 됨. 데모만 보고 싶다면 RDS PG 1대 정도만이라도 미리 띄워둘 것.
 
@@ -310,17 +313,23 @@ bash scripts/build_streamlit_image.sh   # Streamlit UI 이미지
 
 ## 11. ⚠️ Lambda SG → 분석 대상 SG 인바운드 추가 (Option B 사용 시)
 
-Step 6 에서 Option B 골랐으면 여기서 처리.
+Step 6 에서 Option B 골랐으면 여기서 처리. (Option A — wide-open 이면 skip)
+
+`lambda_mcp_image` module 이 Lambda 마다 자기 SG 를 만들 가능성이 있어 — 한 번에 모두 확인:
 
 ```bash
-# 만들어진 Lambda 의 SG ID 확인 — 10개 모두 같은 SG 일 수도, 다를 수도 있음
-aws lambda get-function-configuration \
-  --function-name dbaops-customer-community-postgres \
-  --region ap-northeast-2 --no-cli-pager \
-  --query 'VpcConfig.SecurityGroupIds[0]' --output text
+# 모든 MCP Lambda 의 SG ID 수집
+for fn in $(aws lambda list-functions --region ap-northeast-2 --no-cli-pager \
+              --query 'Functions[?starts_with(FunctionName,`dbaops-customer-`)].FunctionName' --output text); do
+  sg=$(aws lambda get-function-configuration --function-name "$fn" --region ap-northeast-2 --no-cli-pager \
+         --query 'VpcConfig.SecurityGroupIds[0]' --output text)
+  echo "$fn  →  $sg"
+done | sort -u
 ```
 
-그 SG ID 를:
+출력의 unique SG ID 리스트를 모음. 보통 1개 (모든 Lambda 가 default Lambda SG 공유) 지만 module 설정에 따라 다를 수 있음.
+
+이제 분석 대상 SG inbound 에 위 SG 모두 허용:
 - 분석 대상 RDS PG 의 SG → inbound 5432 from `<lambda-sg>` 추가
 - 분석 대상 RDS MySQL → inbound 3306 from `<lambda-sg>`
 - Prometheus EC2 → inbound 9090 from `<lambda-sg>`
@@ -349,18 +358,33 @@ terraform apply -var=mcp_images_pushed=true -var=streamlit_image_pushed=false
 
 ## 13. AgentCore Gateway / Runtime 등록
 
-terraform 으로는 못 만드는 영역 (AWS Bedrock AgentCore preview API). Python 스크립트로:
+terraform 으로는 못 만드는 영역 (AWS Bedrock AgentCore preview API). Python 스크립트로.
+
+**먼저 INFRA_* 환경변수를 export** — register 스크립트가 AgentCore Runtime 의 environmentVariables 로 set 하는 값. agent prompt 의 `<infra_identifiers>` 섹션을 채움. step 7 의 `customer_*_id` 와 같은 값:
 
 ```bash
 cd ../../..    # repo root
-ENV=customer python scripts/register_gateway_targets.py
+pip install boto3   # 처음 1회만
+
+export ENV=customer
+export INFRA_PROM_INSTANCE_ID="i-xxxxxxxx"          # Prometheus EC2
+export INFRA_AURORA_CLUSTER_ID="your-aurora-cluster"
+export INFRA_AURORA_WRITER_ID="your-aurora-writer"
+export INFRA_AURORA_READER_ID=""                     # 옵션
+export INFRA_MYSQL_DB_ID=""                          # 옵션
+export INFRA_MSK_CLUSTER_NAME="your-msk-cluster"     # 옵션
+export INFRA_LOG_BUCKET="your-log-bucket"            # 옵션
+
+python scripts/register_gateway_targets.py
 ```
+
+빈값으로 둬도 동작 — agent 가 LLM 한테 "" 보여주고 사용자가 도구 결과로 발견하게 됨. UX 를 위해 채우는 게 좋음.
 
 스크립트가 하는 일:
 1. Cognito user pool domain 생성 (없으면)
 2. Gateway 생성 (이미 있으면 update)
 3. 10 Lambda 를 Gateway target 으로 등록 (각 tool_io.json 의 schema 그대로)
-4. AgentCore Runtime 생성 (이미 있으면 update)
+4. AgentCore Runtime 생성 (이미 있으면 update) — INFRA_* env 가 Runtime 환경변수로 들어감
 
 **출력 끝부분의 `agentRuntimeArn` 값을 메모**. 다음 step 에서 사용.
 
@@ -419,6 +443,8 @@ terraform output streamlit_url
 - [ ] 도메인 에이전트가 도구 호출 → 응답 받음
 - [ ] 검증 카드 (passed) + 리포트 카드 (markdown + 차트) 표시
 
+> **`🧪 시나리오 라이브 모니터` 탭은 PoC 시연용 자원 (ECS scenario generator) 이 customer 환경에 없어 동작하지 않아. 무시하세요.** 분석은 4개 탭으로만.
+
 ---
 
 ## 16. 트러블슈팅
@@ -432,6 +458,11 @@ terraform output streamlit_url
 | Bedrock 호출이 `AccessDeniedException` | step 3 의 모델 access 미승인 |
 | 이미지 빌드 실패 (linux/arm64 unsupported) | `docker buildx ls` 로 ARM64 builder 확인. Docker Desktop 4.x+ 또는 Linux 의 qemu-user-static 필요 |
 | Lambda 가 `Image Not Found` | 1차 apply 가 ECR repo 만 만들고 step 10 빌드 안 했을 때. step 10 을 확실히 |
+| `community-postgres` Lambda 가 `KeyError: 'username'` | 고객 secret 이 `{"user":"..."}` 같이 다른 키명. RDS 의 `master_user_secret` 자동 발급 secret 으로 교체하거나 `{"username":"..","password":".."}` 형식으로 재생성 |
+| `awslabs-aws-doc` 호출이 timeout | private subnet 에 NAT 없음. step 0 의 NAT 점검 — customer VPC 에 NAT 추가 또는 `create_vpc=true` 로 신규 VPC 사용 |
+| `register_gateway_targets.py` 가 `ModuleNotFoundError: boto3` | `pip install boto3` 후 재실행 |
+| `terraform apply` 가 `error: ... already exists` (Cognito domain 등) | 이전 시도가 실패해 자원이 남음. 콘솔에서 manual 삭제 후 재시도 |
+| Aurora reader/writer 식별자가 prompt 에 안 보임 | step 7 의 `customer_aurora_writer_id` 등 채웠는지. 빈값이면 LLM 이 사용자에게 물어봄 — 동작은 하지만 UX 나쁨 |
 
 ---
 

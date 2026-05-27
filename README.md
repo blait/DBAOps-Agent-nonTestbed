@@ -46,7 +46,9 @@ IAM 권한 요청서 — [docs/CUSTOMER_ONBOARDING.md](docs/CUSTOMER_ONBOARDING.
 
 ---
 
-## 5단계 배포
+## 5단계 배포 (요약)
+
+> **처음 배포라면 [QUICKSTART.md](docs/QUICKSTART.md) 의 19단계 가이드를 그대로 따라가세요**. 이 README 의 5단계는 이미 한 번 해본 사람을 위한 요약.
 
 ### 1. 변수 채우기
 
