@@ -1,0 +1,11 @@
+# 고객이 자기 계정에 만든 state bucket / lock table 로 채워서
+# `backend.tf` 로 rename. 또는 `terraform init -backend-config=...` 로 주입.
+terraform {
+  backend "s3" {
+    bucket         = "dbaops-tfstate-<account_id>-<region>"
+    key            = "envs/customer/terraform.tfstate"
+    region         = "ap-northeast-2"
+    dynamodb_table = "dbaops-tfstate-lock"
+    encrypt        = true
+  }
+}

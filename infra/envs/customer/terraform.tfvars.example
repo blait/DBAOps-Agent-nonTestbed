@@ -1,0 +1,68 @@
+# 고객이 채워야 할 변수 — 자기 환경 값으로.
+# 사용법: 이 파일을 `terraform.tfvars` 로 복사한 뒤 값 채움.
+
+############################################
+# 환경 / 리전
+############################################
+environment = "customer"
+region      = "ap-northeast-2"
+
+############################################
+# VPC — 고객 기존 VPC 사용 권장 (RDS/Prometheus 와 같은 VPC)
+############################################
+create_vpc = false
+
+customer_vpc_id             = "vpc-xxxxxxxxxxxxxxxxx"
+customer_private_subnet_ids = ["subnet-xxx", "subnet-yyy"]
+customer_public_subnet_ids  = ["subnet-aaa", "subnet-bbb"]
+
+############################################
+# Bedrock 모델 (콘솔에서 access 활성화 필요)
+############################################
+bedrock_model_id = "global.anthropic.claude-opus-4-7"
+
+############################################
+# 고객 PostgreSQL — 필수
+############################################
+customer_pg_host       = "your-aurora-pg-writer.cluster-xxxxxx.ap-northeast-2.rds.amazonaws.com"
+customer_pg_dbname     = "postgres"
+customer_pg_secret_arn = "arn:aws:secretsmanager:ap-northeast-2:<account>:secret:rds!cluster-xxxxxx"
+
+############################################
+# 고객 MySQL — 옵션 (없으면 빈 값)
+############################################
+customer_mysql_host       = ""
+customer_mysql_dbname     = "mysql"
+customer_mysql_secret_arn = ""
+
+############################################
+# 고객 Prometheus — 옵션
+############################################
+customer_prometheus_url = ""
+
+############################################
+# 고객 MSK / Kafka — 옵션
+############################################
+customer_msk_cluster_name    = ""
+customer_kafka_default_topic = ""
+customer_kafka_default_cg    = ""
+
+############################################
+# 고객 S3 log bucket — 옵션
+############################################
+customer_log_bucket     = ""
+customer_log_bucket_arn = ""
+
+############################################
+# Agent prompt 의 인프라 식별자 (RDS/EC2 콘솔에서 복사)
+############################################
+customer_prom_instance_id  = ""                              # EC2 InstanceId of Prometheus host
+customer_aurora_cluster_id = "your-aurora-cluster-id"        # Aurora cluster identifier
+customer_aurora_writer_id  = "your-aurora-writer-id"         # DBInstanceIdentifier (writer)
+customer_aurora_reader_id  = ""
+customer_mysql_db_id       = ""
+
+############################################
+# AgentCore Runtime ARN — 1차 apply 후 register 스크립트로 만든 뒤 채움
+############################################
+agentcore_runtime_arn = ""
