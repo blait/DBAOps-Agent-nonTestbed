@@ -2,6 +2,8 @@
 
 ## 1. 클라우드 팀에 IAM Policy 신청
 
+> 빠른 길: **[`docs/iam/IAM_APPLY_GUIDE.md`](iam/IAM_APPLY_GUIDE.md) 와 `docs/iam/dbaops-deployer-policy-{1,2}.json` 두 파일을 클라우드 팀에 첨부하면 끝**. 콘솔/CLI/Terraform 적용법 모두 적혀있음.
+
 배포 담당자 IAM user/role 에 다음 policy attach 요청.
 
 **요청 메일 템플릿**:
