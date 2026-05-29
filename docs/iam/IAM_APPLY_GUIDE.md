@@ -185,7 +185,6 @@ aws bedrock-agentcore-control list-agent-runtimes --region ap-northeast-2 --no-c
 
 | 항목 | 요청 |
 |---|---|
-| Bedrock Claude Opus 4.7 model access | AWS Console → Bedrock → Model access → Anthropic Claude Opus 4.7 → Request access |
 | 서비스 쿼터 | Fargate Spot vCPU 8개, Lambda 동시 실행 100, RDS Aurora cluster 1, MSK Serverless cluster 1 |
 | 리전 | ap-northeast-2 (서울) — 다른 리전 지원 안 함 |
 

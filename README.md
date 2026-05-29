@@ -28,7 +28,6 @@
 ## 사전 요구사항
 
 - AWS account (단일 계정, 기본 리전 `ap-northeast-2`)
-- Bedrock 모델 access — **Anthropic Claude Opus 4.7** 활성화 (콘솔 → Bedrock → Model access)
 - 고객이 보유한 다음 중 최소 1개 (없으면 빈값으로 두면 됨):
   - PostgreSQL endpoint + Secrets Manager secret (필수)
   - MySQL endpoint + secret (옵션)

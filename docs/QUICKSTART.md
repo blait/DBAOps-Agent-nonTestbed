@@ -59,15 +59,8 @@ aws bedrock list-foundation-models --region ap-northeast-2 --no-cli-pager --quer
 
 ---
 
-## 3. Bedrock Claude Opus 4.7 모델 access 활성
+## 3. Bedrock 모델 호출 가능 여부 확인
 
-콘솔에서 **manual 작업 1회**:
-
-1. AWS Console → **Bedrock** → 왼쪽 메뉴 → **Model access**
-2. `Anthropic Claude Opus 4.7` 찾아서 **Available** 인지 확인. **Available to request** 면 → "Modify model access" → 체크 → "Request model access"
-3. 승인까지 ~수분. 승인되면 상태가 **Access granted**.
-
-확인:
 ```bash
 aws bedrock invoke-model \
   --model-id global.anthropic.claude-opus-4-7 \
@@ -78,7 +71,7 @@ aws bedrock invoke-model \
 cat /tmp/bedrock_test.json
 ```
 
-`{"id":"msg_...","type":"message","role":"assistant",...}` 응답 오면 OK. `AccessDeniedException` 떨어지면 모델 access 미승인.
+`{"id":"msg_...","type":"message","role":"assistant",...}` 응답 오면 OK. `AccessDeniedException` 떨어지면 IAM policy 의 `bedrock:InvokeModel` 액션이 부여돼있는지 확인 (Step 2 의 IAM JSON).
 
 ---
 
@@ -455,7 +448,7 @@ terraform output streamlit_url
 | Streamlit task 가 STOPPED | `aws logs tail /ecs/dbaops-customer-streamlit --since 10m` 로 컨테이너 로그 확인. `AGENTCORE_RUNTIME_ARN` 미설정이 흔한 원인 — step 14 의 `-var=agentcore_runtime_arn=` 다시 |
 | 응답에 "타임아웃" / "도구 호출 실패" | Lambda 가 RDS 등에 못 닿는 것. step 11 의 SG inbound 추가 |
 | `register_gateway_targets.py` 가 권한 에러 | `bedrock-agentcore-control:*` IAM 액션 누락. `docs/CUSTOMER_ONBOARDING.md` 의 `BedrockAgentCore` Sid 적용 |
-| Bedrock 호출이 `AccessDeniedException` | step 3 의 모델 access 미승인 |
+| Bedrock 호출이 `AccessDeniedException` | IAM policy 의 `bedrock:InvokeModel` / `bedrock:InvokeModelWithResponseStream` 액션 부여 확인. region 도 ap-northeast-2 인지 |
 | 이미지 빌드 실패 (linux/arm64 unsupported) | `docker buildx ls` 로 ARM64 builder 확인. Docker Desktop 4.x+ 또는 Linux 의 qemu-user-static 필요 |
 | Lambda 가 `Image Not Found` | 1차 apply 가 ECR repo 만 만들고 step 10 빌드 안 했을 때. step 10 을 확실히 |
 | `community-postgres` Lambda 가 `KeyError: 'username'` | 고객 secret 이 `{"user":"..."}` 같이 다른 키명. RDS 의 `master_user_secret` 자동 발급 secret 으로 교체하거나 `{"username":"..","password":".."}` 형식으로 재생성 |

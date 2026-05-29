@@ -24,7 +24,6 @@ DBAOps-Agent 배포를 위해 다음 IAM Policy 생성 + 배포 담당자에게 
 - 배포·운영 기간 (예: 2026-01-01 ~ 2026-12-31)
 
 [4] 추가 요청 (IAM 외)
-- Bedrock 모델 access 활성: Anthropic Claude Opus 4.7 (Bedrock 콘솔 → Model access)
 - 서비스 쿼터: Fargate Spot vCPU 8개, Lambda 동시 실행 100, ECS service 1
 - 리전: ap-northeast-2
 ```
@@ -323,4 +322,4 @@ aws dynamodb create-table \
 | Lambda 가 RDS 에 도달 못 함 (timeout) | 고객 RDS SG 가 Lambda SG 의 인바운드 미허용. `lambda_community_postgres` 의 SG ID 를 RDS SG 에 추가 |
 | Streamlit 이 502 | ECS task 가 떠있는지 (`aws ecs describe-services ... --cluster dbaops-customer`) 확인. ALB target health 도 |
 | `register_gateway_targets.py` 가 ENV mismatch | `ENV=customer` 명시했는지. default 는 `customer` 지만 옛 PoC 와 혼동 시 명시 |
-| Bedrock 호출에 `AccessDenied` | 콘솔 → Bedrock → Model access 에서 Claude Opus 4.7 활성 |
+| Bedrock 호출에 `AccessDenied` | IAM policy 의 `bedrock:InvokeModel` 액션 부여됐는지 확인. 또는 region 이 모델 지원 region 인지 (ap-northeast-2 권장) |
